@@ -9,8 +9,6 @@
 #include <pthread.h>
 #include <iomanip>
 
-const char* SERVER_IP = "127.0.0.1";  // Replace with your server's IP address
-const int SERVER_PORT = 1221;
 
 struct TaskData {
     int cpuNum;
@@ -19,6 +17,8 @@ struct TaskData {
 };
 
 void* handleServerResponse(void* arg) {
+    const char* SERVER_IP = "127.0.0.1";  // Replace with your server's IP address
+    const int SERVER_PORT = 1221;
     TaskData* taskData = static_cast<TaskData*>(arg);
 
     int clientSocket;
