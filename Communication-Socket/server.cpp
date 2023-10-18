@@ -84,10 +84,17 @@ void handleClient(int clientSocket) {
     close(clientSocket);
 }
 
-int main() {
+int main(int argc, char* argv[]) {
+    if (argc != 2) {
+        std::cerr << "Usage: " << argv[0] << " <Port>" << std::endl;
+        return 1;
+    }
+
     int serverSocket, clientSocket;
     socklen_t cli_len;
     struct sockaddr_in serv_addr, cli_addr;
+
+    int serverPort = std::stoi(argv[1]);
 
     // Create socket
     serverSocket = socket(AF_INET, SOCK_STREAM, 0);
@@ -106,7 +113,7 @@ int main() {
 
     // Bind socket
     serv_addr.sin_family = AF_INET;
-    serv_addr.sin_port = htons(1221);
+    serv_addr.sin_port = htons(serverPort);
     serv_addr.sin_addr.s_addr = INADDR_ANY;
     if (bind(serverSocket, (struct sockaddr*)&serv_addr, sizeof(serv_addr)) < 0) {
         perror("Error binding socket");
@@ -119,10 +126,8 @@ int main() {
 
     // Install signal handler for reaping child processes
     signal(SIGCHLD, fireman);
-
+    cli_len = sizeof(cli_addr);
     while (1) {
-        // Accept incoming connections
-        cli_len = sizeof(cli_addr);
         clientSocket = accept(serverSocket, (struct sockaddr*)&cli_addr, &cli_len);
         if (clientSocket < 0) {
             perror("Error accepting connection");
