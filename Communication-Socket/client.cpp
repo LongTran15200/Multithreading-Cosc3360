@@ -1,4 +1,5 @@
 #include <iostream>
+#include <iomanip>
 #include <cstring>
 #include <sys/socket.h>
 #include <netinet/in.h>
@@ -7,22 +8,21 @@
 #include <sstream>
 #include <vector>
 #include <pthread.h>
-#include <iomanip>
-
+#include <netdb.h> //needed this shit for hostent
 
 struct TaskData {
     int cpuNum;
     std::string input;
     std::vector<double> entropyValues;
+    struct hostent* serverHost;
+    struct sockaddr_in serverAddr;
+    int serverPort;
 };
 
 void* handleServerResponse(void* arg) {
-    const char* SERVER_IP = "127.0.0.1";  // Replace with your server's IP address
-    const int SERVER_PORT = 1221;
     TaskData* taskData = static_cast<TaskData*>(arg);
 
     int clientSocket;
-    struct sockaddr_in serverAddr;
 
     // Create socket
     clientSocket = socket(AF_INET, SOCK_STREAM, 0);
@@ -31,12 +31,13 @@ void* handleServerResponse(void* arg) {
         exit(1);
     }
 
-    serverAddr.sin_family = AF_INET;
-    serverAddr.sin_port = htons(SERVER_PORT);
-    serverAddr.sin_addr.s_addr = inet_addr(SERVER_IP);
+    // Set up server address
+    taskData->serverAddr.sin_family = AF_INET;
+    taskData->serverAddr.sin_port = htons(taskData->serverPort);
+    bcopy((char*)taskData->serverHost->h_addr, (char*)&taskData->serverAddr.sin_addr, taskData->serverHost->h_length);
 
     // Connect to the server
-    if (connect(clientSocket, (struct sockaddr*)&serverAddr, sizeof(serverAddr)) < 0) {
+    if (connect(clientSocket, (struct sockaddr*)&taskData->serverAddr, sizeof(taskData->serverAddr)) < 0) {
         perror("Error connecting to server");
         close(clientSocket);
         pthread_exit(NULL);
@@ -71,7 +72,21 @@ void* handleServerResponse(void* arg) {
     pthread_exit(NULL);
 }
 
-int main() {
+int main(int argc, char* argv[]) {
+    if (argc != 3) {
+        std::cerr << "usagee " << argv[0] << " hostname port" << std::endl;
+        return 1;
+    }
+
+    char* serverName = argv[1];
+    int serverPort = std::stoi(argv[2]);
+
+    struct hostent* serverHost = gethostbyname(serverName);
+    if (serverHost == nullptr) {
+        std::cerr << "Error: Unknown host" << std::endl;
+        return 1;
+    }
+
     int cpuNum = 1;
     std::string input;
     std::vector<TaskData> taskDataVec;
@@ -85,6 +100,8 @@ int main() {
         TaskData taskData;
         taskData.input = input;
         taskData.cpuNum = cpuNum;
+        taskData.serverHost = serverHost;
+        taskData.serverPort = serverPort;
 
         taskDataVec.push_back(taskData);
 
