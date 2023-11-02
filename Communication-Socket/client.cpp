@@ -8,18 +8,18 @@
 #include <sstream>
 #include <vector>
 #include <pthread.h>
-#include <netdb.h> //needed this shit for hostent
+#include <netdb.h> 
 
 struct TaskData {
     int cpuNum;
     std::string input;
     std::vector<double> entropyValues;
-    struct hostent* serverHost;
+    struct hostent* serverHost;//literally needed hostent to work
     struct sockaddr_in serverAddr;
     int serverPort;
 };
 
-void* handleServerResponse(void* arg) {
+void* serverResponse(void* arg) {
     TaskData* taskData = static_cast<TaskData*>(arg);
 
     int clientSocket;
@@ -38,7 +38,7 @@ void* handleServerResponse(void* arg) {
 
     // Connect to the server
     if (connect(clientSocket, (struct sockaddr*)&taskData->serverAddr, sizeof(taskData->serverAddr)) < 0) {
-        perror("Error connecting to server");
+        perror("Error connecting to the server");
         close(clientSocket);
         pthread_exit(NULL);
     }
@@ -74,7 +74,7 @@ void* handleServerResponse(void* arg) {
 
 int main(int argc, char* argv[]) {
     if (argc != 3) {
-        std::cerr << "usagee " << argv[0] << " hostname port" << std::endl;
+        std::cerr << "usage " << argv[0] << " hostname port" << std::endl;
         return 1;
     }
 
@@ -100,6 +100,7 @@ int main(int argc, char* argv[]) {
         TaskData taskData;
         taskData.input = input;
         taskData.cpuNum = cpuNum;
+        //setting varialbe of port and ipadress
         taskData.serverHost = serverHost;
         taskData.serverPort = serverPort;
 
@@ -113,7 +114,7 @@ int main(int argc, char* argv[]) {
 
     // Create and execute threads for handling server responses
     for (size_t i = 0; i < taskDataVec.size(); i++) {
-        if (pthread_create(&threads[i], nullptr, handleServerResponse, &taskDataVec[i]) != 0) {
+        if (pthread_create(&threads[i], nullptr, serverResponse, &taskDataVec[i]) != 0) {
             std::cerr << "Error creating thread for handling server response." << std::endl;
             return 1;
         }
