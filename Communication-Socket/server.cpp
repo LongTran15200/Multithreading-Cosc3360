@@ -10,6 +10,7 @@
 #include <cmath>
 #include <pthread.h>
 
+//calculating entropy function
 double entropy(std::map<char, int>& freq, int currFreq, double currH, char selectedTask, int extraFreq) {
     double H = 0;
     int Nfreq = currFreq + extraFreq;
@@ -33,6 +34,7 @@ double entropy(std::map<char, int>& freq, int currFreq, double currH, char selec
     return H;
 }
 
+//this is needed for the server (fork)
 void fireman(int) {
     while (waitpid(-1, nullptr, WNOHANG) > 0) {}
 }
@@ -121,13 +123,13 @@ int main(int argc, char* argv[]) {
         exit(1);
     }
 
-    // Listen for incoming connections
+    // Listen for incoming connections which is from the client
     listen(serverSocket, 5);
 
     // Install signal handler for reaping child processes
     signal(SIGCHLD, fireman);
     cli_len = sizeof(cli_addr);
-    while (1) {
+    while (true) {
         clientSocket = accept(serverSocket, (struct sockaddr*)&cli_addr, &cli_len);
         if (clientSocket < 0) {
             perror("Error accepting connection");
@@ -151,7 +153,7 @@ int main(int argc, char* argv[]) {
         close(clientSocket);
     }
 
-    // Close the listening socket (will not reach here)
+    // Close the listening socket (which will not reach here)
     close(serverSocket);
     return 0;
 }
